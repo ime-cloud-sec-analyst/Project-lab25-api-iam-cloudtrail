@@ -1,185 +1,91 @@
 # Project-lab25-api-iam-cloudtrail
 Secure an AWS API Gateway endpoint using IAM authorization and monitor access with CloudTrail. Includes IAM roles, SigV4 auth, and full audit trail for serverless APIs.
-# Lab 25: Advanced API Security with IAM Authorization and CloudTrail Monitoring
-
-## 👤 Author
-**Dr. Ime Ben**  
-AWS Account ID: `2853-0598-8025`  
-GitHub: [ime-cloud-sec-analyst](https://github.com/ime-cloud-sec-analyst)
-
----
-
-## 🔐 Overview
-
-This lab demonstrates how to securely expose an AWS API Gateway endpoint using **IAM-based authorization** while logging and monitoring all access with **AWS CloudTrail**. The solution implements **enterprise-grade API security**, combining **identity-based access control**, **serverless backend**, and **auditing** — all essential components of a compliant and secure cloud environment.
-
----
-
-## 🎯 Aim
-
-To restrict public access to an API Gateway endpoint by requiring IAM credentials and monitor all API activities with CloudTrail for security auditing and compliance.
-
----
-
-## 🧩 Objectives
-
-- 🔐 Restrict access to an API Gateway endpoint using IAM authentication.
-- 📜 Enable full API audit logging via CloudTrail.
-- 🧪 Simulate real-world authorized and unauthorized API calls.
-- ✅ Prove security enforcement in a serverless cloud architecture.
-
----
-
-## 🛠️ Tools & Services Used
-
-| Tool/Service       | Purpose                                           |
-|--------------------|---------------------------------------------------|
-| **AWS API Gateway**| Host secure serverless API endpoints              |
-| **AWS Lambda**     | Backend function handler                          |
-| **AWS IAM**        | Define policies and roles for API authorization   |
-| **AWS CloudTrail** | Monitor, log, and audit API usage                 |
-| **AWS CLI/Postman**| Test IAM-authenticated API calls                  |
-| **S3**             | Store CloudTrail logs securely                    |
-
----
-
-## ⚙️ Implementation Procedure
-
-### 1. ✅ Prepare Backend Lambda
-- Reuse the existing Lambda from Lab 24 (`SecureBackendFunction`).
-- Ensure correct execution role and logging permissions.
-
-### 2. 🔗 Configure API Gateway Authorization
-- API Gateway → **Routes** → `/SecureBackendFunction`
-- Under `Authorization`, select `AWS IAM`
-- Save configuration
-
-### 3. 👤 Create IAM User for API Access
-- IAM → Add User → `APIAuthorizedUser`
-- Enable **programmatic access**
-- Attach the following **minimal policy**:
-```json
+Lab 25: Advanced API Security with IAM Authorization and CloudTrail Monitoring
+Author
+Dr. Ime Ben
+AWS Account ID: 2853-0598-8025
+Overview
+This lab demonstrates how to implement strong IAM-based authorization for AWS API Gateway endpoints and monitor all activity using AWS CloudTrail. 
+We build on top of the previous serverless API setup, enhancing security, access control, and observability.
+Aim
+To secure a public-facing API Gateway endpoint using AWS IAM authorization and monitor the access via CloudTrail logs for audit and compliance.
+Objectives
+- Restrict access to an API Gateway endpoint using IAM roles.
+- Set up CloudTrail to capture API invocation logs.
+- Simulate access with valid IAM user credentials.
+- Demonstrate security enforcement in a real-world serverless architecture.
+Tools Used
+- AWS API Gateway (HTTP API)
+- AWS Lambda
+- IAM Roles and Policies
+- AWS CloudTrail
+- AWS CLI or Postman with SigV4 authorization
+Implementation Procedure
+Step 1: Prepare Lambda Function
+Use the same `SecureBackendFunction` created in Lab 24. Confirm the role has execution permissions and logging.
+Step 2: Modify API Gateway Integration
+Go to API Gateway > SecureBackendAPI
+Click on Routes > /SecureBackendFunction
+Under Authorization, select AWS IAM
+Save changes
+Step 3: Create an IAM User for Testing
+IAM > Users > Add user
+Name: APIAuthorizedUser
+Programmatic access: ✅
+Attach policy:
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "execute-api:Invoke",
-      "Resource": "arn:aws:execute-api:*:*:*"
-    }
-  ]
+"Version": "2012-10-17",
+"Statement": [{"Effect": "Allow","Action": "execute-api:Invoke","Resource": "arn:aws:execute-api:*:*:*"}]
 }
-4. 📡 Simulate API Access with IAM (SigV4)
-Option A: AWS CLI
+Save access key and secret key.
+Step 4: Test IAM Authorization (Postman or AWS CLI)
+Use SigV4 Signing (required for IAM authorization)
+Example with AWS CLI:
+aws apigatewayv2 get-api --api-id YOUR_API_ID
+aws --region eu-west-1 --profile api-user apigatewayv2 invoke-api --api-id YOUR_API_ID --stage dev --route-key GET /SecureBackendFunction
+Step 5: Enable CloudTrail Monitoring
+Go to CloudTrail > Create Trail
+Enable management events ✅
+Enable data events > Select API Gateway
+Specify S3 bucket for logs
+Finish setup
+Step 6: Validate Logs
+Access the API with the IAM user
+Visit CloudTrail > Event History
+Filter by Event Source: apigateway.amazonaws.com
+View IP address, request ID, IAM user, method used, etc.
+Strategies and Approach
+- Enforce IAM over public APIs to prevent unauthorized access.
+- Use CloudTrail for a tamper-proof audit trail.
+- Apply least-privilege access through scoped IAM policies.
+- Combine SigV4 + IAM roles for secured automation scripts.
+Significance in the Real Work Environment
+- Security-first development: IAM access is controlled per API
+- Auditable: CloudTrail offers full traceability of API activity
+- Policy-driven Access: Aligns with compliance frameworks (CIS, ISO)
+- Enterprise-ready: IAM + CloudTrail is mandatory in regulated environments
+Must-Do Best Practices
+- Always use IAM for internal or partner-access APIs
+- Regularly rotate access keys
+- Log API access with CloudTrail and store in encrypted S3
+- Deny open/insecure permissions explicitly
+- Validate SigV4 auth in production testing
+Challenges Encountered
+- Postman lacks native SigV4; required manual header setup or use of CLI
+- Misconfigured IAM policy causes 403 even for valid users
+- CloudTrail log delivery delay (~5 mins)
+Limitations
+- No fine-grained access per route (unless using Resource policies)
+- No WAF or Cognito integration in this stage
+- Not suitable for anonymous/public access use cases
+Next Steps
+- Integrate Cognito for token-based access
+- Add WAF for additional filtering
+- Implement throttling and usage plans with API keys
+- Extend audit with CloudWatch Alarms on suspicious activity
+GitHub Repository
+https://github.com/ime-cloud-sec-analyst/lab25-api-iam-cloudtrail
+Summary
+This final lab project closes the loop in serverless security by showing how to apply IAM-based access control and traceable event logging for APIs. This pattern is essential for securing internal APIs and complying with enterprise security requirements.
 
-bash
-Copy
-Edit
-aws --region eu-west-1 \
---profile api-user \
-apigatewayv2 invoke-api \
---api-id YOUR_API_ID \
---stage dev \
---route-key GET /SecureBackendFunction
-Option B: Postman (manual SigV4 headers)
-
-Requires manual setup or AWS Signature tool (e.g., postman-aws-auth).
-
-5. 🕵️ Enable CloudTrail
-Go to CloudTrail → Create Trail
-
-Enable management events
-
-Enable data events for API Gateway
-
-Specify a secure S3 bucket for log storage
-
-6. 🔍 Validate Logs
-Test access to the endpoint using IAM credentials
-
-Go to CloudTrail > Event History
-
-Filter by:
-
-Event Source = apigateway.amazonaws.com
-
-User Name = APIAuthorizedUser
-
-Review logs for:
-
-IP address
-
-Timestamp
-
-Route accessed
-
-Access success/failure
-
-User identity
-
-🧠 Methods & Security Approaches
-Area	Strategy
-🔒 Access Control	Enforced via IAM roles and SigV4 authentication
-📜 Auditing	Real-time API activity tracking via CloudTrail
-🛡️ Principle of Least Privilege	IAM policy scoped to only required execute-api:Invoke action
-🧪 Real-world Simulation	IAM user simulates partner/client integration securely
-📥 Encrypted Log Storage	CloudTrail logs stored in S3 with server-side encryption
-
-🧩 Use Case & Real-World Importance
-IAM-based API access with CloudTrail is critical in the following environments:
-
-🏛️ Regulated industries (Finance, Healthcare, Gov): Compliance with CIS, ISO, PCI-DSS, and NIST requires access control and auditing.
-
-🏢 Enterprise Internal APIs: Secure microservices, partner APIs, or automation tools with controlled IAM access.
-
-🔍 Security Audits & Threat Detection: CloudTrail enables full traceability of API calls and user behavior.
-
-✅ Must-Do Security Practices
-Always require IAM or Cognito for sensitive APIs
-
-Enable CloudTrail logs for all regions and services
-
-Use fine-grained IAM policies
-
-Periodically rotate access keys
-
-Block unused or expired IAM users
-
-Automate CloudTrail log analysis with CloudWatch Logs Insights or GuardDuty
-
-⚠️ Challenges Faced
-Challenge	Resolution
-🔐 Postman lacks native SigV4	Used AWS CLI or AWS Signature Helper
-❌ IAM policy misconfiguration	Validated JSON, ensured Resource and Action fields matched
-⏱️ CloudTrail log delay	Allowed up to 5 mins before checking event history
-📜 Long logs	Used filters and tags to navigate logs quickly
-
-⚠️ Limitations
-❌ No route-specific permissions (needs resource policy)
-
-❌ No Cognito user pools or WAF integration yet
-
-❌ Not suitable for public or anonymous APIs
-
-🧪 Limited to AWS IAM; external OAuth not supported in this lab
-
-🚀 Next Steps
-🔐 Add Amazon Cognito or OAuth 2.0 for token-based access
-
-🧱 Integrate WAF for SQLi/XSS protection
-
-📈 Enable usage plans and throttling via API Keys
-
-🧪 Create CloudWatch Alarms for high-risk access patterns
-
-📊 Extend audit trails with AWS Config + Security Hub
-
-📁 GitHub Repository
-🔗 Repo: lab25-api-iam-cloudtrail
-
-Browse all screenshots, Terraform (if applicable), CloudTrail sample logs, and implementation scripts.
-
-🧾 Summary
-Lab 25 closes the AWS Cloud Security Engineer lab portfolio with a critical enterprise-grade security capability: secure API authorization + full observability.
-
-By combining IAM-based access, SigV4 authentication, and CloudTrail monitoring, you implement the gold standard for internal/external API security. This is a must-have pattern in any production AWS environment.
+By using IAM + CloudTrail, we protect, monitor, and audit every request — a critical skill for any modern AWS Cloud Security Engineer.
